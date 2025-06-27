@@ -10,6 +10,12 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.prompt import Prompt, Confirm
 import readline
+try:
+    import termios
+    import tty
+    TERMIOS_AVAILABLE = True
+except ImportError:
+    TERMIOS_AVAILABLE = False
 from rich.text import Text
 from rich.align import Align
 from rich import box
@@ -19,6 +25,17 @@ class StashAwayTUI:
     def __init__(self):
         self.console = Console()
         self.running = True
+        self.selected_index = 0  # Currently selected menu item
+        self.menu_items = [
+            ("Show Status", self.show_status),
+            ("Push Backup", self.push_backup),
+            ("Create Archive", self.create_archive),
+            ("List Backups", self.list_backups),
+            ("Initialize Repository", self.initialize),
+            ("Compare with Backup", self.compare_backup),
+            ("Restore Backup", self.restore_backup),
+            ("Quit", self.quit_app)
+        ]
         # Enable readline for better input handling
         try:
             readline.set_startup_hook(None)
@@ -55,7 +72,7 @@ class StashAwayTUI:
                 cmd_parts, 
                 capture_output=True, 
                 text=True,
-                timeout=30  # Add timeout to prevent hanging
+                timeout=120  # Increased timeout for network operations like restore
             )
             
             # Combine stdout and stderr for complete output
@@ -65,7 +82,7 @@ class StashAwayTUI:
             
             return output if output else "Command completed with no output."
         except subprocess.TimeoutExpired:
-            return "[red]Error: Command timed out after 30 seconds[/red]"
+            return "[red]Error: Command timed out after 2 minutes. This may indicate network issues or authentication problems.[/red]"
         except Exception as e:
             return f"[red]Error: {str(e)}[/red]"
     
@@ -103,6 +120,69 @@ class StashAwayTUI:
             except:
                 return default
     
+    def get_key(self):
+        """Get a single keypress from the user"""
+        if not TERMIOS_AVAILABLE:
+            # Fallback for systems without termios (like Windows)
+            self.console.print("[dim]Enter your choice: [/dim]", end="")
+            try:
+                choice = input().strip().upper()
+                if choice in ['1', '2', '3', '4', '5', '6', '7']:
+                    return choice
+                elif choice in ['Q', 'QUIT']:
+                    return 'QUIT'
+                else:
+                    return 'ENTER'  # Default to enter
+            except:
+                return 'QUIT'
+        
+        try:
+            # Save original terminal settings
+            fd = sys.stdin.fileno()
+            old_settings = termios.tcgetattr(fd)
+            
+            try:
+                # Set terminal to raw mode
+                tty.setraw(sys.stdin.fileno())
+                
+                # Read a single character
+                key = sys.stdin.read(1)
+                
+                # Handle escape sequences (arrow keys)
+                if ord(key) == 27:  # ESC sequence
+                    key += sys.stdin.read(2)
+                    if key == '\x1b[A':  # Up arrow
+                        return 'UP'
+                    elif key == '\x1b[B':  # Down arrow
+                        return 'DOWN'
+                    elif key == '\x1b[C':  # Right arrow
+                        return 'RIGHT'
+                    elif key == '\x1b[D':  # Left arrow
+                        return 'LEFT'
+                    else:
+                        return 'ESC'
+                elif ord(key) == 10 or ord(key) == 13:  # Enter
+                    return 'ENTER'
+                elif ord(key) == 3:  # Ctrl+C
+                    return 'CTRL_C'
+                elif key == 'q' or key == 'Q':
+                    return 'QUIT'
+                elif key in '12345678':
+                    return key
+                else:
+                    return key.upper()
+                    
+            finally:
+                # Restore original terminal settings
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+                
+        except Exception:
+            # Fallback to regular input if terminal manipulation fails
+            try:
+                return input().strip()
+            except:
+                return 'QUIT'
+    
     def show_header(self):
         """Display the header"""
         header = Panel(
@@ -118,23 +198,30 @@ class StashAwayTUI:
         self.console.print()
     
     def show_menu(self):
-        """Display the main menu"""
+        """Display the main menu with cursor navigation"""
         table = Table(show_header=False, box=None)
-        table.add_column("Key", style="cyan", width=12)
+        table.add_column("Selector", style="cyan", width=3)
+        table.add_column("Key", style="cyan", width=5)
         table.add_column("Action", style="white")
         
-        table.add_row("[bold]1[/bold]", "Show Status")
-        table.add_row("[bold]2[/bold]", "Push Backup")
-        table.add_row("[bold]3[/bold]", "Create Archive")
-        table.add_row("[bold]4[/bold]", "List Backups")
-        table.add_row("[bold]5[/bold]", "Initialize Repository")
-        table.add_row("[bold]6[/bold]", "Compare with Backup")
-        table.add_row("[bold]7[/bold]", "Restore Backup")
-        table.add_row("[bold]q[/bold]", "Quit")
+        for idx, (action_name, _) in enumerate(self.menu_items):
+            key = str(idx + 1) if idx < 7 else "q"
+            
+            if idx == self.selected_index:
+                # Highlight selected item
+                selector = "▶"
+                key_style = "[bold reverse cyan]" + key + "[/bold reverse cyan]"
+                action_style = "[bold reverse white]" + action_name + "[/bold reverse white]"
+            else:
+                selector = " "
+                key_style = "[bold]" + key + "[/bold]"
+                action_style = action_name
+            
+            table.add_row(selector, key_style, action_style)
         
         menu_panel = Panel(
             table,
-            title="[bold]Main Menu[/bold]",
+            title="[bold]Main Menu[/bold] [dim](↑↓ to navigate, Enter to select, q to quit)[/dim]",
             title_align="left",
             border_style="green",
             box=box.ROUNDED
@@ -337,8 +424,8 @@ class StashAwayTUI:
         
         if backup_name and Confirm.ask(f"[yellow]Restore {backup_name}?[/yellow]"):
             import shlex
-            cmd = f"python3 stash-away.py restore {shlex.quote(backup_name)}"
-            with self.console.status("[bold green]Restoring...[/bold green]"):
+            cmd = f"python3 stash-away.py restore {shlex.quote(backup_name)} --yes"
+            with self.console.status("[bold green]Restoring backup (this may take a while)...[/bold green]", spinner="dots12"):
                 output = self.run_command(cmd)
             
             if "Successfully restored backup." in output:
@@ -359,35 +446,56 @@ class StashAwayTUI:
         self.console.print("\n[dim]Press Enter to continue...[/dim]")
         input()
     
+    def quit_app(self):
+        """Quit the application"""
+        if Confirm.ask("[yellow]Are you sure you want to quit?[/yellow]"):
+            self.console.print("\n[bold green]Goodbye![/bold green]")
+            self.running = False
+    
     def run(self):
-        """Main application loop"""
+        """Main application loop with cursor navigation"""
         while self.running:
             self.console.clear()
             self.show_header()
             self.show_menu()
             
-            choice = self.safe_input("Select an option (1): ", "1")
+            # Show navigation instructions
+            self.console.print("[dim]Use ↑↓ arrows to navigate, Enter to select, or press number keys[/dim]")
             
-            if choice == "1":
-                self.show_status()
-            elif choice == "2":
-                self.push_backup()
-            elif choice == "3":
-                self.create_archive()
-            elif choice == "4":
-                self.list_backups()
-            elif choice == "5":
-                self.initialize()
-            elif choice == "6":
-                self.compare_backup()
-            elif choice == "7":
-                self.restore_backup()
-            elif choice.lower() == "q":
-                if Confirm.ask("[yellow]Are you sure you want to quit?[/yellow]"):
-                    self.console.print("\n[bold green]Goodbye![/bold green]")
-                    self.running = False
-            else:
-                self.console.print("[red]Invalid option. Please try again.[/red]")
+            try:
+                key = self.get_key()
+                
+                if key == 'UP':
+                    self.selected_index = (self.selected_index - 1) % len(self.menu_items)
+                elif key == 'DOWN':
+                    self.selected_index = (self.selected_index + 1) % len(self.menu_items)
+                elif key == 'ENTER':
+                    # Execute selected menu item
+                    _, action = self.menu_items[self.selected_index]
+                    action()
+                elif key == 'QUIT' or key == 'CTRL_C':
+                    self.quit_app()
+                elif key in '12345678':
+                    # Direct number selection (legacy support)
+                    try:
+                        index = int(key) - 1
+                        if 0 <= index < len(self.menu_items):
+                            self.selected_index = index
+                            _, action = self.menu_items[index]
+                            action()
+                    except (ValueError, IndexError):
+                        self.console.print("[red]Invalid option. Please try again.[/red]")
+                        time.sleep(1)
+                elif key == 'Q':
+                    self.quit_app()
+                else:
+                    # For any other key, just refresh the display
+                    continue
+                    
+            except KeyboardInterrupt:
+                self.quit_app()
+            except Exception as e:
+                self.console.print(f"[red]Error: {str(e)}[/red]")
                 time.sleep(1)
 
 def main():

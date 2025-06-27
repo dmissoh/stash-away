@@ -172,7 +172,7 @@ def diff_backup(backup_name):
 
     run_command(['git', 'branch', '-D', backup_name])
 
-def restore_backup(backup_name):
+def restore_backup(backup_name, auto_confirm=False):
     """Restores a backup to a new local branch."""
     backup_url = get_backup_repo_url()
     if not backup_url:
@@ -181,21 +181,56 @@ def restore_backup(backup_name):
 
     restore_branch_name = f"restore/{backup_name.replace('backup/', '')}"
     
-    # Confirm before restoring
-    response = input(f"This will create a new branch '{restore_branch_name}' with the backup contents. Continue? (y/N): ")
-    if response.lower() != 'y':
-        print("Restore cancelled.")
+    # Check if restore branch already exists
+    result = run_command(['git', 'branch', '--list', restore_branch_name], capture_output=True, check=False)
+    if result.stdout.strip():
+        print(f"Error: Branch '{restore_branch_name}' already exists.", file=sys.stderr)
+        print(f"To restore anyway, first delete the existing branch:", file=sys.stderr)
+        print(f"  git branch -D {restore_branch_name}", file=sys.stderr)
         return
+    
+    # Confirm before restoring (unless auto-confirmed)
+    if not auto_confirm:
+        response = input(f"This will create a new branch '{restore_branch_name}' with the backup contents. Continue? (y/N): ")
+        if response.lower() != 'y':
+            print("Restore cancelled.")
+            return
     
     print(f"Fetching and restoring {backup_name} to a new local branch: {restore_branch_name}")
 
-    run_command(['git', 'fetch', backup_url, f'{backup_name}:{restore_branch_name}'], env=get_git_env())
+    try:
+        # First check if the backup exists in the remote
+        print("Checking if backup exists...")
+        list_result = run_command(
+            ['git', 'ls-remote', '--heads', backup_url, f'refs/heads/{backup_name}'],
+            capture_output=True,
+            env=get_git_env(),
+            check=False
+        )
+        
+        if not list_result.stdout.strip():
+            print(f"Error: Backup '{backup_name}' not found in the remote repository.", file=sys.stderr)
+            return
+        
+        # Fetch the backup branch
+        print("Fetching backup from remote repository...")
+        run_command(['git', 'fetch', backup_url, f'{backup_name}:{restore_branch_name}'], env=get_git_env())
 
-    run_command(['git', 'checkout', restore_branch_name])
+        # Switch to the restore branch
+        print(f"Switching to branch '{restore_branch_name}'...")
+        run_command(['git', 'checkout', restore_branch_name])
 
-    print(f"\nSuccessfully restored backup.")
-    print(f"Your project is now on branch '{restore_branch_name}' with the contents of {backup_name}.")
-    print("You can now review the changes, commit, or switch back to your main branch.")
+        print(f"\nSuccessfully restored backup.")
+        print(f"Your project is now on branch '{restore_branch_name}' with the contents of {backup_name}.")
+        print("You can now review the changes, commit, or switch back to your main branch.")
+        
+    except Exception as e:
+        print(f"Error during restore: {e}", file=sys.stderr)
+        # Try to clean up if restore branch was created but checkout failed
+        result = run_command(['git', 'branch', '--list', restore_branch_name], capture_output=True, check=False)
+        if result.stdout.strip():
+            print(f"Cleaning up partially created branch '{restore_branch_name}'...")
+            run_command(['git', 'branch', '-D', restore_branch_name], check=False)
 
 # --- FILESYSTEM ARCHIVE LOGIC ---
 
@@ -295,6 +330,7 @@ def main():
 
     restore_parser = subparsers.add_parser('restore', help='Restore a backup to a new local branch.')
     restore_parser.add_argument('backup_name', help='The full name of the backup branch to restore.')
+    restore_parser.add_argument('--yes', '-y', action='store_true', help='Auto-confirm restore without prompting')
     
     status_parser = subparsers.add_parser('status', help='Show current backup configuration and repository status.')
     
@@ -313,7 +349,7 @@ def main():
     elif args.command == 'diff':
         diff_backup(args.backup_name)
     elif args.command == 'restore':
-        restore_backup(args.backup_name)
+        restore_backup(args.backup_name, auto_confirm=args.yes)
     elif args.command == 'status':
         show_status()
     elif args.command == 'ui':
