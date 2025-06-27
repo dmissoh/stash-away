@@ -30,6 +30,20 @@ python3 stash-away.py <command>
 
 ## Usage
 
+### Interactive UI (NEW!)
+
+Launch the interactive text-based user interface:
+```bash
+stash-away ui
+```
+
+The TUI provides:
+- Easy navigation with number keys
+- Visual feedback with colors and panels
+- Interactive prompts for all operations
+- Status indicators and progress spinners
+- Confirmation dialogs for sensitive operations
+
 ### Check Current Status
 
 View your current backup configuration and repository status:
@@ -165,6 +179,7 @@ stash-away restore backup/2025-06-27_09-00-00
 - Git
 - SSH access to your backup repository
 - PyInstaller (only for building standalone executable)
+- Rich library (for TUI mode): `pip install rich`
 
 ## Building
 

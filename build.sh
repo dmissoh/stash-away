@@ -10,6 +10,12 @@ if ! command -v pyinstaller &> /dev/null; then
     exit 1
 fi
 
+# Check if rich is installed
+if ! python3 -c "import rich" &> /dev/null; then
+    echo "Warning: 'rich' library not found. Installing it..."
+    pip3 install rich
+fi
+
 # Clean previous builds
 echo "Cleaning previous builds..."
 rm -rf build/ dist/

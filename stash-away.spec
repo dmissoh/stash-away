@@ -1,12 +1,40 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
-    ['/Users/dimitri.missoh/dev/workspace/private/private-fork/stash-away.py'],
-    pathex=[],
+    ['stash-away.py', 'stash_away_tui.py'],
+    pathex=['.'],
     binaries=[],
     datas=[],
-    hiddenimports=[],
+    hiddenimports=[
+        'rich',
+        'rich.console', 
+        'rich.table', 
+        'rich.panel',
+        'rich.layout',
+        'rich.live',
+        'rich.prompt',
+        'rich.text',
+        'rich.align',
+        'rich.box',
+        'rich.control',
+        'rich.segment',
+        'rich._emoji_codes',
+        'rich._emoji_replace',
+        'rich.pretty',
+        'rich.traceback',
+        'rich.logging',
+        'rich.tree',
+        'rich.columns',
+        'rich.syntax',
+        'markdown_it',
+        'markdown_it.rules_block',
+        'markdown_it.rules_inline',
+        'markdown_it.rules_core',
+        'markdown_it.renderer',
+        'markdown_it.ruler',
+        'markdown_it.token',
+        'mdurl'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -14,6 +42,7 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
 pyz = PYZ(a.pure)
 
 exe = EXE(

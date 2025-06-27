@@ -5,6 +5,7 @@ import sys
 import tarfile
 import tempfile
 from datetime import datetime
+import os
 
 # --- UTILITY FUNCTIONS ---
 
@@ -296,6 +297,8 @@ def main():
     restore_parser.add_argument('backup_name', help='The full name of the backup branch to restore.')
     
     status_parser = subparsers.add_parser('status', help='Show current backup configuration and repository status.')
+    
+    ui_parser = subparsers.add_parser('ui', help='Launch interactive text-based user interface.')
 
     args = parser.parse_args()
 
@@ -313,6 +316,34 @@ def main():
         restore_backup(args.backup_name)
     elif args.command == 'status':
         show_status()
+    elif args.command == 'ui':
+        # Check if we're in a git repository first
+        if not is_git_repository():
+            print("Error: Not in a git repository", file=sys.stderr)
+            sys.exit(1)
+        # Import and run TUI
+        try:
+            # Try importing rich first to give better error message
+            try:
+                import rich
+            except ImportError:
+                print("Error: The 'rich' library is required for the UI mode.", file=sys.stderr)
+                print("Please install it with: pip install rich", file=sys.stderr)
+                sys.exit(1)
+            
+            # Import and run the TUI
+            import stash_away_tui
+            app = stash_away_tui.StashAwayTUI()
+            app.run()
+        except ImportError as e:
+            print("Error: Could not import TUI module.", file=sys.stderr)
+            print(f"Details: {str(e)}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Error running UI: {str(e)}", file=sys.stderr)
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
