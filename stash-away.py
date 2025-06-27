@@ -311,7 +311,7 @@ def main():
     """Main function to parse arguments and call the appropriate handler."""
     parser = argparse.ArgumentParser(
         description="A CLI tool to back up a project to a personal Git repository or a local archive.",
-        epilog="Example usage: stash-away push"
+        epilog="Example usage: stash-away push\nFor beginners: stash-away ui (interactive interface)"
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Available commands')
 

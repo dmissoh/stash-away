@@ -30,6 +30,22 @@ python3 stash-away.py <command>
 
 ## Usage
 
+### Quick Start
+
+For first-time users, we recommend starting with the interactive UI:
+
+```bash
+# Launch the TUI (Text User Interface)
+stash-away ui
+```
+
+Use arrow keys to navigate, Enter to select options, and follow the on-screen prompts to:
+1. Initialize your backup repository
+2. Create your first backup
+3. Explore other features
+
+For advanced users or scripting, all CLI commands are also available directly.
+
 ### Interactive UI (NEW!)
 
 Launch the interactive text-based user interface:
@@ -37,12 +53,33 @@ Launch the interactive text-based user interface:
 stash-away ui
 ```
 
-The TUI provides:
-- Easy navigation with number keys
-- Visual feedback with colors and panels
-- Interactive prompts for all operations
-- Status indicators and progress spinners
-- Confirmation dialogs for sensitive operations
+The TUI provides a modern, intuitive interface with:
+
+#### **Navigation:**
+- **Arrow Keys**: Use ↑↓ to navigate between menu options
+- **Enter**: Execute the highlighted option
+- **Number Keys**: Direct selection (1-7) for quick access
+- **Q**: Quick quit
+
+#### **Features:**
+- **Visual highlighting**: Selected option shows with reverse colors and ▶ arrow
+- **Rich feedback**: Colored panels and progress indicators
+- **Smart input handling**: Proper backspace/delete support
+- **Interactive forms**: Easy repository setup and backup selection
+- **Progress spinners**: Visual feedback for long operations
+- **Error handling**: Clear error messages and recovery options
+
+#### **Menu Options:**
+1. **Show Status** - View repository and backup configuration
+2. **Push Backup** - Create a new timestamped backup
+3. **Create Archive** - Generate local .tar.gz archive
+4. **List Backups** - Browse all available backups
+5. **Initialize Repository** - Set up backup URL and SSH keys
+6. **Compare with Backup** - Diff current state with any backup
+7. **Restore Backup** - Restore any backup to a new branch
+8. **Quit** - Exit the application
+
+The TUI handles all the same operations as the command-line interface but with a much more user-friendly experience.
 
 ### Check Current Status
 
