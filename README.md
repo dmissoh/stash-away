@@ -1,5 +1,7 @@
 # Stash-Away
 
+![Stash-Away Logo](stash-away.png)
+
 A lightweight CLI tool for backing up your Git repositories to personal backup repositories or creating local archives. Perfect for developers who need to maintain personal backups of work projects or want to snapshot their progress without affecting the main repository.
 
 ## Features
