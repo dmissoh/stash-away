@@ -307,6 +307,106 @@ def show_status():
         else:
             print(f"  No backups found or unable to connect to backup repository")
 
+def show_help():
+    """Display comprehensive help information."""
+    help_text = """
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                               STASH-AWAY HELP                               ║
+║                        Git Repository Backup Tool                          ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+DESCRIPTION:
+    Stash-Away helps you backup Git repositories to personal backup repositories
+    or create local archives. Perfect for developers who need personal backups
+    of work projects or want to snapshot progress without affecting main repos.
+
+QUICK START:
+    For beginners, use the interactive interface:
+        stash-away ui
+
+COMMANDS:
+
+┌─ SETUP ─────────────────────────────────────────────────────────────────────┐
+│ init <url> [--identity-file <path>]                                        │
+│     Initialize backup repository URL with optional SSH key                 │
+│     Example: stash-away init git@github.com:user/backups.git              │
+│              stash-away init --identity-file ~/.ssh/id_rsa_personal \\      │
+│                         git@github.com:personal/backups.git               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ BACKUP ────────────────────────────────────────────────────────────────────┐
+│ push                                                                        │
+│     Create timestamped backup of current state to remote repository        │
+│     Example: stash-away push                                               │
+│                                                                             │
+│ archive                                                                     │
+│     Create local compressed archive respecting .gitignore                  │
+│     Example: stash-away archive                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ MANAGE ────────────────────────────────────────────────────────────────────┐
+│ list                                                                        │
+│     List all available backups in remote repository                        │
+│     Example: stash-away list                                               │
+│                                                                             │
+│ status                                                                      │
+│     Show current backup configuration and repository status                │
+│     Example: stash-away status                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ COMPARE & RESTORE ─────────────────────────────────────────────────────────┐
+│ diff <backup_name>                                                          │
+│     Compare current state with a specific backup                           │
+│     Example: stash-away diff backup/2025-06-27_15-30-00                   │
+│                                                                             │
+│ restore <backup_name> [--yes]                                              │
+│     Restore backup to new local branch (use --yes to skip confirmation)   │
+│     Example: stash-away restore backup/2025-06-27_15-30-00                │
+│              stash-away restore backup/2025-06-27_15-30-00 --yes          │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ INTERFACE ─────────────────────────────────────────────────────────────────┐
+│ ui                                                                          │
+│     Launch interactive text-based user interface                           │
+│     Navigation: ↑↓ arrows, Enter to select, Q to quit                     │
+│     Example: stash-away ui                                                 │
+│                                                                             │
+│ help                                                                        │
+│     Show this help message                                                  │
+│     Example: stash-away help                                               │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+WORKFLOW EXAMPLES:
+
+  First-time setup:
+    stash-away init git@github.com:myuser/my-backups.git
+    stash-away push
+    
+  Daily workflow:
+    stash-away push              # Backup current work
+    stash-away archive           # Create local snapshot
+    
+  Working with backups:
+    stash-away list              # See available backups
+    stash-away diff backup/2025-06-27_15-30-00    # Compare with backup
+    stash-away restore backup/2025-06-27_15-30-00 # Restore if needed
+
+CONFIGURATION:
+    Settings are stored in your project's Git config:
+    - backup.url: The backup repository URL
+    - backup.identityFile: SSH key path (optional)
+    
+    View settings: git config --get backup.url
+
+SSH KEYS:
+    Use different SSH keys for work and personal repositories:
+    stash-away init --identity-file ~/.ssh/id_rsa_personal \\
+                   git@github.com:personal/backups.git
+
+For more information, visit: https://github.com/dmissoh/stash-away
+"""
+    print(help_text)
+
 def main():
     """Main function to parse arguments and call the appropriate handler."""
     parser = argparse.ArgumentParser(
@@ -335,6 +435,8 @@ def main():
     status_parser = subparsers.add_parser('status', help='Show current backup configuration and repository status.')
     
     ui_parser = subparsers.add_parser('ui', help='Launch interactive text-based user interface.')
+    
+    help_parser = subparsers.add_parser('help', help='Show detailed help and usage examples.')
 
     args = parser.parse_args()
 
@@ -352,6 +454,8 @@ def main():
         restore_backup(args.backup_name, auto_confirm=args.yes)
     elif args.command == 'status':
         show_status()
+    elif args.command == 'help':
+        show_help()
     elif args.command == 'ui':
         # Check if we're in a git repository first
         if not is_git_repository():

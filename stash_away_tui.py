@@ -167,6 +167,8 @@ class StashAwayTUI:
                     return 'CTRL_C'
                 elif key == 'q' or key == 'Q':
                     return 'QUIT'
+                elif key == 'h' or key == 'H':
+                    return 'H'  # Normalize both to 'H'
                 elif key in '12345678':
                     return key
                 else:
@@ -221,7 +223,7 @@ class StashAwayTUI:
         
         menu_panel = Panel(
             table,
-            title="[bold]Main Menu[/bold] [dim](↑↓ to navigate, Enter to select, q to quit)[/dim]",
+            title="[bold]Main Menu[/bold] [dim](↑↓ to navigate, Enter to select, H for help, q to quit)[/dim]",
             title_align="left",
             border_style="green",
             box=box.ROUNDED
@@ -446,6 +448,76 @@ class StashAwayTUI:
         self.console.print("\n[dim]Press Enter to continue...[/dim]")
         input()
     
+    def show_help(self):
+        """Show comprehensive help screen"""
+        self.console.clear()
+        self.show_header()
+        
+        help_content = """[bold cyan]NAVIGATION:[/bold cyan]
+  ↑↓ [cyan]Arrow Keys[/cyan]    Navigate between menu options
+  [cyan]Enter[/cyan]            Execute highlighted option
+  [cyan]Number Keys (1-7)[/cyan] Direct selection for quick access
+  [cyan]Q[/cyan]                Quick quit
+  [cyan]H[/cyan]                Show this help screen
+
+[bold green]MENU COMMANDS:[/bold green]
+  [bold]1. Show Status[/bold]        View repository and backup configuration
+  [bold]2. Push Backup[/bold]        Create timestamped backup to remote repository
+  [bold]3. Create Archive[/bold]     Generate local .tar.gz archive (respects .gitignore)
+  [bold]4. List Backups[/bold]       Browse all available backups in remote repository
+  [bold]5. Initialize[/bold]         Set up backup repository URL and SSH keys
+  [bold]6. Compare with Backup[/bold] Compare current state with any backup
+  [bold]7. Restore Backup[/bold]     Restore any backup to a new branch
+  [bold]8. Quit[/bold]               Exit the application
+
+[bold yellow]WORKFLOW EXAMPLES:[/bold yellow]
+
+[bold]First-time setup:[/bold]
+  1. Select [cyan]Initialize Repository[/cyan]
+  2. Enter your backup repository URL (e.g., git@github.com:user/backups.git)
+  3. Optionally specify SSH key path for authentication
+  4. Select [cyan]Push Backup[/cyan] to create your first backup
+
+[bold]Daily workflow:[/bold]
+  • Use [cyan]Push Backup[/cyan] to backup current work to remote repository
+  • Use [cyan]Create Archive[/cyan] to create local snapshots
+  • Use [cyan]Show Status[/cyan] to check repository state and last backup
+
+[bold]Working with backups:[/bold]
+  • Use [cyan]List Backups[/cyan] to see all available backups
+  • Use [cyan]Compare with Backup[/cyan] to see what changed since a backup
+  • Use [cyan]Restore Backup[/cyan] to restore any backup to a new branch
+
+[bold red]FEATURES:[/bold red]
+  ✓ [green]Visual highlighting[/green] - Selected option shows with reverse colors and ▶ arrow
+  ✓ [green]Progress indicators[/green] - Spinners and status messages for long operations
+  ✓ [green]Error handling[/green] - Clear error messages and recovery suggestions
+  ✓ [green]Smart input[/green] - Proper backspace/delete support in forms
+  ✓ [green]Confirmation dialogs[/green] - Safety prompts for destructive operations
+
+[bold blue]CONFIGURATION:[/bold blue]
+  Settings are stored in your project's Git configuration:
+  • [cyan]backup.url[/cyan] - The backup repository URL
+  • [cyan]backup.identityFile[/cyan] - SSH key path (optional)
+
+[bold magenta]SSH KEYS:[/bold magenta]
+  Support for multiple SSH keys to separate work and personal repositories.
+  Specify during initialization or update via [cyan]Initialize Repository[/cyan].
+
+[dim]Press any key to return to main menu...[/dim]"""
+        
+        help_panel = Panel(
+            help_content,
+            title="[bold]Stash-Away Help[/bold]",
+            title_align="left",
+            border_style="blue",
+            box=box.ROUNDED,
+            padding=(1, 2)
+        )
+        
+        self.console.print(help_panel)
+        input()
+    
     def quit_app(self):
         """Quit the application"""
         if Confirm.ask("[yellow]Are you sure you want to quit?[/yellow]"):
@@ -488,6 +560,8 @@ class StashAwayTUI:
                         time.sleep(1)
                 elif key == 'Q':
                     self.quit_app()
+                elif key == 'H':
+                    self.show_help()
                 else:
                     # For any other key, just refresh the display
                     continue
