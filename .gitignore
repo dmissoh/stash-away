@@ -182,3 +182,6 @@ stash-away-backup-*.tar.gz
 # Test files
 test_*.py
 *_test.py
+
+# Project documentation
+CLAUDE.md
